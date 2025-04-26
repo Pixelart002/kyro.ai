@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kyro.ai</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f9f9f9;
+      --text: #000;
+      --chat-bg: #fff;
+      --sidebar-bg: #202123;
+      --sidebar-text: #fff;
+      --item-hover: #343541;
+      --code-bg: #2d2d2d;
+      --code-text: #f8f8f2;
+    }
+
+    [data-theme="dark"] {
+      --bg: #343541;
+      --text: #fff;
+      --chat-bg: #444654;
+      --sidebar-bg: #202123;
+      --sidebar-text: #fff;
+      --item-hover: #565869;
+      --code-bg: #1e1e1e;
+      --code-text: #dcdcdc;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    pre, code {
+      background-color: var(--code-bg);
+      color: var(--code-text);
+      padding: 6px;
+      border-radius: 6px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="flex h-screen overflow-hidden" style="background-color: var(--bg); color: var(--text);">
+    <div id="sidebar" class="fixed top-0 left-0 h-full w-64 -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-50 flex-shrink-0 flex flex-col" style="background-color: var(--sidebar-bg); color: var(--sidebar-text);">
+      <div class="p-4 text-lg font-bold">ChatGPT</div>
+      <div id="chatList" class="flex-1 overflow-y-auto p-2"></div>
+      <button onclick="startNewChat()" class="m-2 p-2 bg-green-500 text-white rounded">+ New Chat</button>
+      <div class="m-2">
+        <button onclick="toggleTheme()" class="w-full px-2 py-1 bg-gray-500 rounded">Toggle Theme</button>
+      </div>
+      <div class="m-2">
+        <select id="modelSelectSidebar" class="w-full px-2 py-1 border rounded" onchange="syncModelSelection(this.value)">
+          <option value="gpt-3.5">GPT-3.5</option>
+          <option value="chatgpt-4o-latest">GPT-4o</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="mainContent" class="flex-1 flex flex-col" style="background-color: var(--bg); color: var(--text);">
+      <div id="navbar" class="h-12 flex items-center px-4 border-b justify-between" style="background-color: var(--chat-bg);">
+        <div class="text-lg font-semibold">AQuising</div>
+        <button onclick="document.getElementById('sidebar').classList.toggle('-translate-x-full')" class="md:hidden block bg-green-500 text-white px-3 py-1 rounded">☰</button>
+      </div>
+
+      <div id="chatWindow" class="flex-1 overflow-y-auto p-4" style="background-color: var(--chat-bg);"></div>
+
+      <div id="chatInputArea" class="flex flex-col sm:flex-row p-2 border-t gap-2" style="background-color: var(--chat-bg);">
+        <input type="text" id="userInput" placeholder="Type your message... (Enter to send)" class="flex-1 p-2 border rounded" />
+        <div class="flex gap-2">
+          <button id="sendBtn" onclick="sendMessage()" class="px-4 py-2 bg-green-500 text-white rounded">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+      const newTheme = currentTheme === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", newTheme);
+      localStorage.setItem("theme", newTheme);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const savedTheme = localStorage.getItem("theme") || "light";
+      document.documentElement.setAttribute("data-theme", savedTheme);
+      const savedModel = localStorage.getItem("model") || "gpt-3.5";
+      document.getElementById("modelSelectSidebar").value = savedModel;
+    });
+
+    function startNewChat() {
+      const chatList = document.getElementById("chatList");
+      const chatItem = document.createElement("div");
+      chatItem.textContent = `Chat ${chatList.children.length + 1}`;
+      chatItem.className = "p-2 hover:bg-gray-700 cursor-pointer";
+      chatItem.onclick = () => alert(`Opening ${chatItem.textContent}`);
+      chatList.appendChild(chatItem);
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const message = input.value.trim();
+      if (!message) return;
+
+      const chatWindow = document.getElementById("chatWindow");
+      const userMessage = document.createElement("div");
+      userMessage.className = "mb-2 p-2 bg-green-100 dark:bg-green-900 rounded";
+      userMessage.textContent = message;
+      chatWindow.appendChild(userMessage);
+
+      input.value = "";
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+
+      const botMessage = document.createElement("div");
+      botMessage.className = "mb-2 p-2 bg-gray-200 dark:bg-gray-700 rounded";
+      botMessage.textContent = "Thinking...";
+      chatWindow.appendChild(botMessage);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+
+      const apiKey = "632ea6c7c93d420a93f04df682cada20";
+      const systemPrompt = "You are a helpful assistant.";
+      const model = localStorage.getItem("model") || "gpt-3.5";
+
+      try {
+        const res = await fetch("https://api.aimlapi.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: "system", content: systemPrompt, name: "system" },
+              { role: "user", content: message }
+            ],
+            stream: false,
+            temperature: 1,
+            max_tokens: 256,
+            response_format: { type: "text" },
+            modalities: ["text"]
+          })
+        });
+
+        const data = await res.json();
+        botMessage.textContent = data.choices?.[0]?.message?.content || "No response from AI.";
+      } catch (err) {
+        botMessage.textContent = "Error: " + err.message;
+      }
+    }
+
+    function syncModelSelection(value) {
+      localStorage.setItem("model", value);
+    }
+  </script>
+  
+  
+</body>
+</html>
