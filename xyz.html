@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Text to Speech</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f4f4f4;
+    }
+
+    input {
+      width: 300px;
+      padding: 10px;
+      font-size: 16px;
+      border: 2px solid #333;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      outline: none;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+
+<body>
+
+  <input type="text" id="input" placeholder="Enter text">
+  <button id="btn">Speak</button>
+
+  <script>
+    const input = document.querySelector('#input');
+    const btn = document.querySelector('#btn');
+
+    const textToSpeech = () => {
+      let text = input.value;
+      let voice = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.speak(voice);
+    };
+
+    btn.addEventListener('click', textToSpeech);
+  </script>
+
+</body>
+</html>
